@@ -1,0 +1,7 @@
+{
+  "name": "CNN Browser Lab - Huấn luyện AI trong Trình duyệt",
+  "description": "Nền tảng học tập tương tác giúp học sinh tự nạp ảnh, huấn luyện mạng nơ-ron tích chập (CNN) bằng TensorFlow.js, trực quan hóa và kiểm thử ngay trên trình duyệt.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
