@@ -5,14 +5,13 @@ import confetti from 'canvas-confetti';
 import { 
   Play, 
   Square, 
-  RefreshCw, 
   Activity, 
   CheckCircle2, 
   AlertTriangle, 
   Sparkles, 
-  ArrowRight,
   TrendingUp,
-  Cpu
+  Cpu,
+  ArrowRight
 } from 'lucide-react';
 
 interface TrainingStepProps {
@@ -53,7 +52,7 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
   const currentEpoch = epochLogs.length > 0 ? epochLogs[epochLogs.length - 1].epoch : 0;
   const latestLog = epochLogs.length > 0 ? epochLogs[epochLogs.length - 1] : null;
 
-  // Real-time canvas drawing for Loss and Accuracy curves
+  // Real-time canvas drawing for Loss and Accuracy curves (High-contrast Light Mode)
   useEffect(() => {
     // Draw Loss Chart
     const lossCanvas = lossCanvasRef.current;
@@ -67,9 +66,8 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
           epochLogs.map(l => l.loss),
           epochLogs.map(l => l.valLoss ?? 0),
           hyperparameters.epochs,
-          'Loss (Hàm mất mát)',
-          '#06b6d4', // Cyan Train Loss
-          '#f59e0b', // Amber Val Loss
+          '#0284c7', // Sky Blue Train Loss
+          '#d97706', // Amber Val Loss
           false // lower is better
         );
       }
@@ -87,9 +85,8 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
           epochLogs.map(l => l.acc),
           epochLogs.map(l => l.valAcc ?? 0),
           hyperparameters.epochs,
-          'Accuracy (Độ chính xác %)',
-          '#10b981', // Emerald Train Acc
-          '#8b5cf6', // Purple Val Acc
+          '#059669', // Emerald Train Acc
+          '#7c3aed', // Purple Val Acc
           true // higher is better (0-100)
         );
       }
@@ -103,21 +100,22 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
     trainData: number[],
     valData: number[],
     totalEpochs: number,
-    title: string,
     trainColor: string,
     valColor: string,
     isPercentage: boolean
   ) => {
-    ctx.clearRect(0, 0, width, height);
+    // Clean white canvas background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
 
     // Padding
     const padX = 40;
-    const padY = 30;
+    const padY = 24;
     const w = width - padX * 2;
     const h = height - padY * 2;
 
-    // Background grid
-    ctx.strokeStyle = '#1e293b';
+    // Background subtle grid lines
+    ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = padY + (h / 4) * i;
@@ -128,7 +126,7 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
 
       // Axis labels
       ctx.fillStyle = '#64748b';
-      ctx.font = '10px monospace';
+      ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'right';
       const valLabel = isPercentage
         ? `${Math.round(100 - i * 25)}%`
@@ -137,12 +135,14 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
     }
 
     // X axis ticks
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('1', padX, padY + h + 15);
     ctx.fillText(`${totalEpochs}`, padX + w, padY + h + 15);
 
     if (trainData.length === 0) {
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#94a3b8';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Chưa có dữ liệu huấn luyện', width / 2, height / 2);
@@ -150,8 +150,8 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
     }
 
     // Calculate scaling
-    let maxVal = isPercentage ? 100 : Math.max(2.0, ...trainData, ...valData);
-    let minVal = 0;
+    const maxVal = isPercentage ? 100 : Math.max(2.0, ...trainData, ...valData);
+    const minVal = 0;
 
     const getX = (idx: number) => {
       if (totalEpochs <= 1) return padX;
@@ -276,7 +276,7 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
   // AI Diagnostic assessment
   const getDiagnosticInsight = () => {
     if (!latestLog) return null;
-    const { acc, valAcc, loss, valLoss } = latestLog;
+    const { acc, valAcc } = latestLog;
 
     if (valAcc !== undefined && acc > 95 && valAcc < 75) {
       return {
@@ -314,17 +314,17 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-2xl p-5">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-2">
-              <Activity className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-2">
+              <Activity className="w-3.5 h-3.5 text-indigo-600" />
               Bước 3: Huấn luyện Mạng Nơ-ron (Model Training)
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Huấn luyện Thời gian thực bằng GPU / WebGL
             </h2>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+            <p className="text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
               Toàn bộ quá trình lan truyền tiến (Forward Pass), tính sai số (Loss) và lan truyền ngược (Backpropagation) diễn ra trực tiếp ngay trên trình duyệt của học sinh.
             </p>
           </div>
@@ -334,7 +334,7 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
               <button
                 onClick={handleStartTraining}
                 disabled={trainSamplesCount === 0}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all"
+                className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-sm shadow-xs flex items-center gap-2 transition-all cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" />
                 {isModelTrained ? 'Huấn luyện lại' : 'Bắt đầu Huấn luyện'}
@@ -342,7 +342,7 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
             ) : (
               <button
                 onClick={handleStopTraining}
-                className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-sm shadow-lg shadow-red-600/30 flex items-center gap-2 transition-all animate-pulse"
+                className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-xs flex items-center gap-2 transition-all animate-pulse cursor-pointer"
               >
                 <Square className="w-4 h-4 fill-current" />
                 Dừng huấn luyện
@@ -357,20 +357,20 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
         <div
           className={`p-4 rounded-xl border flex items-center justify-between text-xs animate-in fade-in duration-150 ${
             statusAlert.type === 'error'
-              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              ? 'bg-red-50 border-red-200 text-red-800'
               : statusAlert.type === 'warning'
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-              : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-indigo-50 border-indigo-200 text-indigo-800'
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 font-medium">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{statusAlert.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setStatusAlert(null)}
-            className="p-1 text-slate-400 hover:text-white rounded"
+            className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
           >
             ✕
           </button>
@@ -380,60 +380,60 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
       {/* Real-time Status Card Row */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Epoch progress */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1">
             <span>Tiến trình Epoch</span>
-            <span className="font-mono">{hyperparameters.epochs} max</span>
+            <span className="font-mono text-slate-500">{hyperparameters.epochs} max</span>
           </div>
-          <div className="text-2xl font-bold font-mono text-white">
-            {currentEpoch} <span className="text-sm text-slate-500">/ {hyperparameters.epochs}</span>
+          <div className="text-2xl font-bold font-mono text-slate-900">
+            {currentEpoch} <span className="text-sm text-slate-500 font-normal">/ {hyperparameters.epochs}</span>
           </div>
-          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-3 border border-slate-200">
             <div
-              className="bg-indigo-500 h-full transition-all duration-300"
+              className="bg-indigo-600 h-full transition-all duration-300"
               style={{ width: `${(currentEpoch / hyperparameters.epochs) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Train Accuracy */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-xs text-emerald-400 mb-1">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-xs font-semibold text-emerald-700 mb-1">
             <span>Train Accuracy</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400">
+          <div className="text-2xl font-bold font-mono text-emerald-700">
             {latestLog ? `${latestLog.acc.toFixed(1)}%` : '--'}
           </div>
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-xs text-slate-500 mt-2 font-mono">
             Loss: {latestLog ? latestLog.loss.toFixed(4) : '--'}
           </div>
         </div>
 
         {/* Validation Accuracy */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-xs text-purple-400 mb-1">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-xs font-semibold text-purple-700 mb-1">
             <span>Val Accuracy</span>
-            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" />
           </div>
-          <div className="text-2xl font-bold font-mono text-purple-400">
+          <div className="text-2xl font-bold font-mono text-purple-700">
             {latestLog?.valAcc !== undefined ? `${latestLog.valAcc.toFixed(1)}%` : (valSamplesCount === 0 ? 'N/A' : '--')}
           </div>
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-xs text-slate-500 mt-2 font-mono">
             Val Loss: {latestLog?.valLoss !== undefined ? latestLog.valLoss.toFixed(4) : '--'}
           </div>
         </div>
 
         {/* Speed */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-xs text-cyan-400 mb-1">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-xs font-semibold text-sky-700 mb-1">
             <span>Tốc độ / Vòng</span>
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <Cpu className="w-3.5 h-3.5 text-sky-600" />
           </div>
-          <div className="text-2xl font-bold font-mono text-cyan-300">
+          <div className="text-2xl font-bold font-mono text-sky-700">
             {latestLog ? `${latestLog.durationMs}ms` : '--'}
           </div>
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-xs text-slate-500 mt-2 font-mono">
             {trainSamplesCount} mẫu train
           </div>
         </div>
@@ -442,71 +442,71 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
       {/* Live Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Loss Curve */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-sky-600" />
                 Đồ thị Mất mát (Loss Curve)
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Càng thấp càng tốt (Mục tiêu tiệm cận 0)
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-cyan-400">
-                <span className="w-2.5 h-1 bg-cyan-400 rounded-full inline-block" />
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-sky-700">
+                <span className="w-2.5 h-2.5 bg-sky-600 rounded-full inline-block" />
                 Train Loss
               </span>
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-2.5 h-1 border-t border-dashed border-amber-400 inline-block" />
+              <span className="flex items-center gap-1.5 text-amber-700">
+                <span className="w-2.5 h-2.5 border-2 border-amber-600 rounded-full inline-block" />
                 Val Loss
               </span>
             </div>
           </div>
 
-          <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-2 overflow-hidden flex items-center justify-center">
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-2 overflow-hidden flex items-center justify-center">
             <canvas
               ref={lossCanvasRef}
               width={520}
               height={220}
-              className="w-full h-52"
+              className="w-full h-52 bg-white rounded-lg shadow-2xs"
             />
           </div>
         </div>
 
         {/* Accuracy Curve */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 Đồ thị Độ chính xác (Accuracy Curve)
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Càng cao càng tốt (Mục tiêu tiệm cận 100%)
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-1 bg-emerald-400 rounded-full inline-block" />
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-emerald-700">
+                <span className="w-2.5 h-2.5 bg-emerald-600 rounded-full inline-block" />
                 Train Acc
               </span>
-              <span className="flex items-center gap-1.5 text-purple-400">
-                <span className="w-2.5 h-1 border-t border-dashed border-purple-400 inline-block" />
+              <span className="flex items-center gap-1.5 text-purple-700">
+                <span className="w-2.5 h-2.5 border-2 border-purple-600 rounded-full inline-block" />
                 Val Acc
               </span>
             </div>
           </div>
 
-          <div className="bg-slate-950/80 rounded-xl border border-slate-800 p-2 overflow-hidden flex items-center justify-center">
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-2 overflow-hidden flex items-center justify-center">
             <canvas
               ref={accCanvasRef}
               width={520}
               height={220}
-              className="w-full h-52"
+              className="w-full h-52 bg-white rounded-lg shadow-2xs"
             />
           </div>
         </div>
@@ -517,51 +517,58 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
         <div
           className={`rounded-2xl p-5 border flex items-start gap-3 transition-all ${
             diagnostic.type === 'warning'
-              ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
               : diagnostic.type === 'success'
-              ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
-              : 'bg-indigo-950/30 border-indigo-500/30 text-indigo-200'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-indigo-50 border-indigo-200 text-indigo-900'
           }`}
         >
           {diagnostic.type === 'warning' ? (
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           ) : (
-            <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           )}
           <div className="text-xs space-y-1">
-            <h4 className="font-bold text-sm text-white">{diagnostic.title}</h4>
-            <p className="leading-relaxed text-slate-300">{diagnostic.message}</p>
+            <h4 className="font-bold text-sm">{diagnostic.title}</h4>
+            <p className="leading-relaxed opacity-90">{diagnostic.message}</p>
           </div>
         </div>
       )}
 
       {/* Next Actions Bar when trained */}
       {isModelTrained && !isTraining && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-              <CheckCircle2 className="w-5 h-5" />
+        <div className="bg-gradient-to-r from-emerald-50/80 via-white to-indigo-50/80 border-2 border-indigo-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-300 shadow-2xs shrink-0">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">Mô hình đã huấn luyện xong!</h4>
-              <p className="text-xs text-slate-400">
-                Bạn muốn đánh giá trên tập Test độc lập hay thử nghiệm trực tiếp ngay?
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900">Mô hình đã huấn luyện thành công! 🎉</h4>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Bước tiếp theo: Bước 4
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                Theo đúng chu trình Machine Learning chuẩn, tiếp theo bạn chuyển sang <strong>Bước 4: Đánh giá & Test</strong> để kiểm tra độ chính xác trên tập dữ liệu kiểm thử độc lập (Confusion Matrix).
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-end shrink-0">
             <button
               onClick={onProceedToEvaluate}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-indigo-600/20 transition-all cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              Bước 4: Đánh giá tập Test
+              <span>Tiếp tục: Bước 4: Đánh giá & Test</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={onProceedToPredict}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-colors"
+              className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Bỏ qua bước đánh giá và thử nghiệm ngay"
             >
-              Bước 5: Thử nghiệm Vẽ / Webcam &rarr;
+              Bỏ qua sang Bước 5
             </button>
           </div>
         </div>

@@ -1,8 +1,6 @@
 /**
  * CNN Browser Lab - Huấn luyện AI trong Trình duyệt
- * Học sinh tự nạp ảnh qua Webcam hoặc file ZIP, tự tạo lớp và gán nhãn,
- * cấu hình mạng CNN, huấn luyện (Train), đánh giá (Validation/Test)
- * và kiểm thử dự đoán thời gian thực.
+ * Giao diện Nền Sáng Hiện Đại (Clean Light Mode) dành cho Học sinh
  */
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, ClassCategory, DatasetSample, Hyperparameters, EpochLog } from './types';
@@ -76,7 +74,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -154,17 +152,17 @@ export default function App() {
 
       {/* Reset Confirmation Modal */}
       {showResetModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-4">
               <RotateCcw className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-white mb-2">
+            <h3 className="text-base font-bold text-slate-900 mb-2">
               Đặt lại Toàn bộ Phòng Thí nghiệm?
             </h3>
 
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
               Thao tác này sẽ giải phóng mô hình CNN trong bộ nhớ, xóa các dữ liệu đã nạp và đưa về trạng thái phòng lab ban đầu.
             </p>
 
@@ -172,14 +170,14 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowResetModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={confirmResetAll}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition-colors"
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm transition-colors"
               >
                 Xác nhận Đặt lại
               </button>
@@ -189,7 +187,7 @@ export default function App() {
       )}
 
       {/* Lab Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>
             Phòng thí nghiệm Học máy Trực quan &bull; Tự Nạp Ảnh & Tự Gán Nhãn &bull; TensorFlow.js WebGL

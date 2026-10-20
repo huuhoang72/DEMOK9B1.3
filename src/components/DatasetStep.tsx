@@ -271,8 +271,6 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
       const lowerName = file.name.toLowerCase();
       if (!validExtensions.some(ext => lowerName.endsWith(ext))) continue;
 
-      // Extract folder name as class
-      // webkitRelativePath example: "my_data/dog/image_1.jpg"
       const pathParts = file.webkitRelativePath.split('/').filter(Boolean);
       let labelName = 'Chưa gán nhãn';
       if (pathParts.length >= 2) {
@@ -281,7 +279,6 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
         labelName = classes.find(c => c.id === selectedClassId)?.name || 'Lớp mới';
       }
 
-      // Check or create class
       if (!labelToClassId.has(labelName)) {
         let matched = updatedClasses.find(c => c.name.toLowerCase() === labelName.toLowerCase());
         if (!matched) {
@@ -385,18 +382,18 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
     });
   };
 
-  // Trigger modal to delete a class
+  // Trigger modal or direct delete for a class
   const requestDeleteClass = (cls: ClassCategory) => {
-    setClassToDelete(cls);
+    const count = samples.filter(s => s.classId === cls.id).length;
+    if (count === 0) {
+      executeDeleteClass(cls.id, cls.name, 0);
+    } else {
+      setClassToDelete(cls);
+    }
   };
 
-  // Execute deletion of selected class
-  const handleConfirmDeleteClass = () => {
-    if (!classToDelete) return;
-    const idToDelete = classToDelete.id;
-    const name = classToDelete.name;
-    const count = samples.filter(s => s.classId === idToDelete).length;
-
+  // Helper to execute deletion cleanly
+  const executeDeleteClass = (idToDelete: string, name: string, count: number) => {
     const remainingClasses = classes.filter(c => c.id !== idToDelete);
     setClasses(remainingClasses);
     setSamples(prev => prev.filter(s => s.classId !== idToDelete));
@@ -413,8 +410,15 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
     setClassToDelete(null);
     setToastMessage({
       type: 'info',
-      text: `Đã xóa lớp "${name}" cùng ${count} ảnh liên quan.`
+      text: `Đã xóa lớp "${name}"${count > 0 ? ` cùng ${count} ảnh liên quan` : ''}.`
     });
+  };
+
+  // Execute deletion of selected class from modal
+  const handleConfirmDeleteClass = () => {
+    if (!classToDelete) return;
+    const count = samples.filter(s => s.classId === classToDelete.id).length;
+    executeDeleteClass(classToDelete.id, classToDelete.name, count);
   };
 
   // Confirm and clear all samples
@@ -482,17 +486,17 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="bg-gradient-to-r from-indigo-50/80 via-white to-sky-50/80 border border-indigo-100 rounded-2xl p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200 mb-2">
               <Tag className="w-3.5 h-3.5" />
               Bước 1: Nạp Dữ liệu & Học sinh Tự Gán Nhãn
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Tự Động Nạp Ảnh & Tạo Lớp Nhận Diện
             </h2>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
               Bạn có thể <strong>tải file ZIP chứa các thư mục lớp</strong> (hệ thống sẽ tự động quét thư mục và tạo nhãn), <strong>chụp trực tiếp từ Webcam</strong> hoặc tải ảnh và tự gán nhãn cho từng lớp.
             </p>
           </div>
@@ -501,9 +505,9 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
             {samples.length > 0 && classes.length >= 2 && (
               <button
                 onClick={onProceedToArchitecture}
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-md shadow-indigo-600/30 flex items-center gap-2 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm flex items-center gap-2 transition-all cursor-pointer"
               >
-                Tiếp tục: Cấu hình CNN &rarr;
+                Tiếp tục: Cấu hình training &rarr;
               </button>
             )}
           </div>
@@ -511,22 +515,22 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
       </div>
 
       {/* Class Management Section */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-600" />
               Danh sách các Lớp do Học sinh Tạo
-              <span className="text-xs font-normal text-slate-400">({classes.length} lớp)</span>
+              <span className="text-xs font-normal text-slate-500">({classes.length} lớp)</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Mỗi lớp là một nhóm ảnh để mô hình CNN học cách phân biệt (Cần tối thiểu 2 lớp để huấn luyện)
             </p>
           </div>
 
           <button
             onClick={() => setShowAddClassModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm self-start sm:self-auto"
+            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             + Tạo lớp mới
@@ -534,10 +538,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
         </div>
 
         {classes.length === 0 ? (
-          <div className="p-8 text-center border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
-            <Tag className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
-            <h4 className="text-sm font-semibold text-white">Chưa có lớp nào</h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+          <div className="p-8 text-center border border-dashed border-slate-300 rounded-xl bg-slate-50/60">
+            <Tag className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
+            <h4 className="text-sm font-bold text-slate-800">Chưa có lớp nào</h4>
+            <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
               Hãy bấm <strong>&quot;Tạo lớp mới&quot;</strong> hoặc <strong>tải file ZIP</strong> chứa các thư mục con (ví dụ: `cho/`, `meo/`) để hệ thống tự động tạo lớp cho bạn!
             </p>
           </div>
@@ -556,28 +560,28 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                   onClick={() => setSelectedClassId(cls.id)}
                   className={`cursor-pointer rounded-xl p-3.5 border transition-all duration-150 relative ${
                     isSelected
-                      ? 'bg-slate-800/90 border-indigo-500 shadow-md ring-1 ring-indigo-500/50'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                      ? 'bg-indigo-50/80 border-indigo-500 shadow-xs ring-1 ring-indigo-500/30'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2.5">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
-                        style={{ backgroundColor: `${cls.color}25`, border: `1px solid ${cls.color}40` }}
+                        style={{ backgroundColor: `${cls.color}20`, border: `1px solid ${cls.color}40` }}
                       >
                         {cls.icon}
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                           {cls.name}
                           {isSelected && (
-                            <span className="text-[10px] text-indigo-400 font-normal px-1.5 py-0.2 bg-indigo-500/10 rounded">
+                            <span className="text-[10px] text-indigo-700 font-semibold px-1.5 py-0.2 bg-indigo-100 rounded">
                               Đang gán
                             </span>
                           )}
                         </h4>
-                        <p className="text-xs text-slate-400 font-mono">
+                        <p className="text-xs text-slate-500 font-mono">
                           {classSamples.length} ảnh
                         </p>
                       </div>
@@ -589,18 +593,19 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                         e.stopPropagation();
                         requestDeleteClass(cls);
                       }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                       title={`Xóa lớp ${cls.name}`}
+                      aria-label={`Xóa lớp ${cls.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Split counts */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="text-emerald-400 font-mono">Train: {trainN}</span>
-                    <span className="text-amber-400 font-mono">Val: {valN}</span>
-                    <span className="text-purple-400 font-mono">Test: {testN}</span>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
+                    <span className="text-emerald-700 font-semibold font-mono">Train: {trainN}</span>
+                    <span className="text-amber-700 font-semibold font-mono">Val: {valN}</span>
+                    <span className="text-purple-700 font-semibold font-mono">Test: {testN}</span>
                   </div>
                 </div>
               );
@@ -612,18 +617,18 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
       {/* Main Upload / Capture Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Side: Input Modes (7 cols) */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col">
           {/* Method Selector Tabs */}
-          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-4">
+          <div className="flex items-center space-x-2 border-b border-slate-200 pb-3 mb-4">
             <button
               onClick={() => {
                 stopWebcam();
                 setInputMode('zip');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                 inputMode === 'zip'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <FolderArchive className="w-4 h-4" />
@@ -635,10 +640,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                 setInputMode('webcam');
                 startWebcam();
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                 inputMode === 'webcam'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Camera className="w-4 h-4" />
@@ -650,10 +655,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                 stopWebcam();
                 setInputMode('upload');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                 inputMode === 'upload'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Upload className="w-4 h-4" />
@@ -664,21 +669,21 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
           {/* Mode 1: ZIP Upload */}
           {inputMode === 'zip' && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-slate-950/40 transition-colors">
-                <FolderArchive className="w-12 h-12 text-indigo-400 mb-3" />
-                <h4 className="text-base font-bold text-white">Tải lên File .ZIP Bộ Dữ Liệu</h4>
-                <p className="text-xs text-slate-400 mt-1.5 max-w-md leading-relaxed">
-                  Tạo file ZIP chứa các thư mục con tương ứng với từng nhãn (ví dụ: <code className="text-indigo-300">cho/</code>, <code className="text-indigo-300">meo/</code>, <code className="text-indigo-300">xe_hoi/</code>). 
+              <div className="border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/70 transition-colors">
+                <FolderArchive className="w-12 h-12 text-indigo-600 mb-3" />
+                <h4 className="text-base font-bold text-slate-900">Tải lên File .ZIP Bộ Dữ Liệu</h4>
+                <p className="text-xs text-slate-600 mt-1.5 max-w-md leading-relaxed">
+                  Tạo file ZIP chứa các thư mục con tương ứng với từng nhãn (ví dụ: <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-800 font-mono">cho/</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-800 font-mono">meo/</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-800 font-mono">xe_hoi/</code>). 
                   Hệ thống sẽ <strong>tự động quét và tạo các lớp</strong> tương ứng!
                 </p>
 
                 {isExtractingZip ? (
-                  <div className="mt-4 flex items-center gap-2 text-indigo-400 text-xs font-mono">
+                  <div className="mt-4 flex items-center gap-2 text-indigo-600 text-xs font-mono font-semibold">
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     Đang giải nén và tiền xử lý ảnh 28×28...
                   </div>
                 ) : (
-                  <label className="mt-5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
+                  <label className="mt-5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer shadow-sm transition-all flex items-center gap-2">
                     <FolderArchive className="w-4 h-4" />
                     <span>Chọn File .ZIP từ máy tính</span>
                     <input
@@ -692,8 +697,8 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               </div>
 
               {zipMessage && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                  <Check className="w-4 h-4 shrink-0" />
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>{zipMessage}</span>
                 </div>
               )}
@@ -705,11 +710,11 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center space-x-2">
-                  <span className="text-slate-400 font-medium">Gán nhãn cho lớp:</span>
+                  <span className="text-slate-600 font-medium">Gán nhãn cho lớp:</span>
                   <select
                     value={selectedClassId}
                     onChange={(e) => setSelectedClassId(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-medium text-xs focus:ring-1 focus:ring-indigo-500"
+                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 font-semibold text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                   >
                     {classes.map(c => (
                       <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
@@ -720,7 +725,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                 {isWebcamActive ? (
                   <button
                     onClick={stopWebcam}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 self-start sm:self-auto"
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 self-start sm:self-auto cursor-pointer"
                   >
                     <CameraOff className="w-3.5 h-3.5" />
                     Tắt Camera
@@ -728,7 +733,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                 ) : (
                   <button
                     onClick={startWebcam}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 self-start sm:self-auto"
+                    className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 self-start sm:self-auto cursor-pointer"
                   >
                     <Camera className="w-3.5 h-3.5" />
                     Bật lại Camera
@@ -737,14 +742,14 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               </div>
 
               {webcamError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{webcamError}</span>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-5 bg-slate-950/80 p-5 rounded-2xl border border-slate-800">
-                <div className="relative w-56 h-56 rounded-2xl overflow-hidden bg-black border border-slate-700 shadow-lg flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-5 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div className="relative w-56 h-56 rounded-2xl overflow-hidden bg-black border border-slate-300 shadow-sm flex items-center justify-center">
                   <video
                     ref={videoRef}
                     autoPlay
@@ -753,22 +758,22 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                     className="w-full h-full object-cover"
                   />
                   {/* Aim boundary */}
-                  <div className="absolute inset-5 border-2 border-dashed border-emerald-400/80 rounded-xl pointer-events-none flex items-center justify-center">
-                    <span className="text-[10px] text-emerald-300 bg-black/60 px-2 py-0.5 rounded backdrop-blur font-mono">
+                  <div className="absolute inset-5 border-2 border-dashed border-emerald-400 rounded-xl pointer-events-none flex items-center justify-center">
+                    <span className="text-[10px] text-emerald-200 bg-black/70 px-2 py-0.5 rounded backdrop-blur font-mono">
                       Khung 1:1
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2.5 w-full sm:w-auto">
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                  <p className="text-xs text-slate-600 max-w-xs leading-relaxed">
                     Giơ vật thể thật hoặc cử chỉ trước camera. Bấm chụp để lưu và tự động gán nhãn cho lớp đã chọn:
                   </p>
 
                   <button
                     onClick={() => captureWebcamSample(1)}
                     disabled={!isWebcamActive || !selectedClassId}
-                    className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md"
+                    className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                     Chụp 1 ảnh
@@ -777,7 +782,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                   <button
                     onClick={() => captureWebcamSample(5)}
                     disabled={!isWebcamActive || !selectedClassId}
-                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-indigo-300 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                    className="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-50 text-indigo-700 border border-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4" />
                     Chụp nhanh 5 ảnh
@@ -786,10 +791,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                   <button
                     onClick={toggleBurstRecording}
                     disabled={!isWebcamActive || !selectedClassId}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all border ${
+                    className={`py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all border cursor-pointer ${
                       isBurstRecording
                         ? 'bg-red-600 text-white border-red-500 animate-pulse'
-                        : 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/30'
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                     }`}
                   >
                     <RefreshCw className={`w-4 h-4 ${isBurstRecording ? 'animate-spin' : ''}`} />
@@ -804,11 +809,11 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
           {inputMode === 'upload' && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2 text-xs mb-2">
-                <span className="text-slate-400 font-medium">Gán nhãn cho lớp:</span>
+                <span className="text-slate-600 font-medium">Gán nhãn cho lớp:</span>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-white font-medium text-xs"
+                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-slate-800 font-semibold text-xs"
                 >
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
@@ -818,15 +823,15 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Folder Upload */}
-                <div className="border border-slate-700 hover:border-indigo-500 rounded-2xl p-5 text-center bg-slate-950/60 flex flex-col items-center justify-between">
+                <div className="border border-slate-200 hover:border-amber-300 rounded-2xl p-5 text-center bg-slate-50/70 flex flex-col items-center justify-between">
                   <div>
-                    <FolderArchive className="w-8 h-8 text-amber-400 mb-2" />
-                    <h5 className="text-sm font-bold text-white">Tải cả Thư mục</h5>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <FolderArchive className="w-8 h-8 text-amber-600 mb-2" />
+                    <h5 className="text-sm font-bold text-slate-900">Tải cả Thư mục</h5>
+                    <p className="text-xs text-slate-500 mt-1">
                       Tải thư mục chứa các thư mục con theo tên lớp
                     </p>
                   </div>
-                  <label className="mt-4 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold cursor-pointer shadow">
+                  <label className="mt-4 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer shadow-xs">
                     <span>Chọn Thư mục</span>
                     <input
                       type="file"
@@ -840,15 +845,15 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                 </div>
 
                 {/* Loose Files Upload */}
-                <div className="border border-slate-700 hover:border-indigo-500 rounded-2xl p-5 text-center bg-slate-950/60 flex flex-col items-center justify-between">
+                <div className="border border-slate-200 hover:border-cyan-300 rounded-2xl p-5 text-center bg-slate-50/70 flex flex-col items-center justify-between">
                   <div>
-                    <Upload className="w-8 h-8 text-cyan-400 mb-2" />
-                    <h5 className="text-sm font-bold text-white">Tải nhiều Ảnh lẻ</h5>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <Upload className="w-8 h-8 text-cyan-600 mb-2" />
+                    <h5 className="text-sm font-bold text-slate-900">Tải nhiều Ảnh lẻ</h5>
+                    <p className="text-xs text-slate-500 mt-1">
                       Gán các ảnh chọn được vào lớp đang chọn
                     </p>
                   </div>
-                  <label className="mt-4 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold cursor-pointer shadow">
+                  <label className="mt-4 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold cursor-pointer shadow-xs">
                     <span>Chọn các File ảnh</span>
                     <input
                       type="file"
@@ -865,16 +870,16 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
         </div>
 
         {/* Right Side: Train / Validation / Test Splitting (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-indigo-600" />
                 Phân chia Tập Dữ liệu
               </h3>
               <button
                 onClick={handleReSplit}
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 cursor-pointer"
                 title="Xáo trộn và chia lại"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -882,20 +887,20 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
               Dữ liệu của học sinh được tự động chia thành 3 phần: Huấn luyện, Đánh giá và Kiểm thử độc lập:
             </p>
 
             {/* Split Sliders */}
-            <div className="space-y-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+            <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
               {/* Train */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                  <span className="font-bold text-emerald-800 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
                     Tập Huấn luyện (Train):
                   </span>
-                  <span className="font-mono text-emerald-300 font-bold">{trainRatio}% ({trainCount} ảnh)</span>
+                  <span className="font-mono text-emerald-700 font-bold">{trainRatio}% ({trainCount} ảnh)</span>
                 </div>
                 <input
                   type="range"
@@ -909,18 +914,18 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                       setValRatio(95 - newTrain);
                     }
                   }}
-                  className="w-full accent-emerald-500"
+                  className="w-full accent-emerald-600"
                 />
               </div>
 
               {/* Validation */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-amber-400 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                  <span className="font-bold text-amber-800 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block" />
                     Tập Đánh giá (Validation):
                   </span>
-                  <span className="font-mono text-amber-300 font-bold">{valRatio}% ({valCount} ảnh)</span>
+                  <span className="font-mono text-amber-700 font-bold">{valRatio}% ({valCount} ảnh)</span>
                 </div>
                 <input
                   type="range"
@@ -933,22 +938,22 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                       setValRatio(newVal);
                     }
                   }}
-                  className="w-full accent-amber-500"
+                  className="w-full accent-amber-600"
                 />
               </div>
 
               {/* Test */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-purple-400 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" />
+                  <span className="font-bold text-purple-800 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" />
                     Tập Kiểm thử (Test):
                   </span>
-                  <span className="font-mono text-purple-300 font-bold">{testRatio}% ({testCount} ảnh)</span>
+                  <span className="font-mono text-purple-700 font-bold">{testRatio}% ({testCount} ảnh)</span>
                 </div>
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-purple-500 h-full transition-all"
+                    className="bg-purple-600 h-full transition-all"
                     style={{ width: `${testRatio}%` }}
                   />
                 </div>
@@ -957,20 +962,20 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
           </div>
 
           {/* Quick info note */}
-          <div className="mt-4 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
+          <div className="mt-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 leading-relaxed">
             <strong>Gợi ý:</strong> Mỗi lớp nên có tối thiểu 10 - 20 ảnh với các góc chụp và độ sáng khác nhau để mạng CNN học tốt nhất!
           </div>
         </div>
       </div>
 
       {/* Dataset Gallery & Manual Relabeling Tool */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
-              <Eye className="w-4 h-4 text-slate-400" />
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Eye className="w-4 h-4 text-slate-500" />
               Thư viện Mẫu & Công cụ Tự Gán Nhãn
-              <span className="text-xs font-normal text-slate-400">
+              <span className="text-xs font-normal text-slate-500">
                 ({filteredSamples.length} / {samples.length} mẫu hiển thị)
               </span>
             </h3>
@@ -979,11 +984,11 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {/* Filter by class */}
             <div className="flex items-center space-x-1">
-              <span className="text-slate-400">Lớp:</span>
+              <span className="text-slate-600 font-medium">Lớp:</span>
               <select
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-semibold"
               >
                 <option value="all">Tất cả các lớp</option>
                 {classes.map(c => (
@@ -994,11 +999,11 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
             {/* Filter by split */}
             <div className="flex items-center space-x-1">
-              <span className="text-slate-400">Tập:</span>
+              <span className="text-slate-600 font-medium">Tập:</span>
               <select
                 value={filterSplit}
                 onChange={(e) => setFilterSplit(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-semibold"
               >
                 <option value="all">Tất cả các tập</option>
                 <option value="train">Chỉ Train ({trainCount})</option>
@@ -1011,7 +1016,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               <button
                 type="button"
                 onClick={() => setShowClearAllModal(true)}
-                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 text-xs transition-colors"
+                className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Xóa hết
               </button>
@@ -1021,18 +1026,18 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
         {/* Batch Relabel Toolbar */}
         {selectedSampleIds.size > 0 && (
-          <div className="mb-4 p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/40 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="mb-4 p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center space-x-2">
-              <CheckSquare className="w-4 h-4 text-indigo-400" />
-              <span className="text-white font-medium">Đang chọn {selectedSampleIds.size} ảnh</span>
+              <CheckSquare className="w-4 h-4 text-indigo-600" />
+              <span className="text-indigo-900 font-bold">Đang chọn {selectedSampleIds.size} ảnh</span>
             </div>
 
             <div className="flex items-center space-x-2">
-              <span className="text-slate-300">Đổi thành nhãn:</span>
+              <span className="text-slate-700 font-medium">Đổi thành nhãn:</span>
               <select
                 value={batchTargetClassId}
                 onChange={(e) => setBatchTargetClassId(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-white text-xs"
+                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-slate-800 font-semibold text-xs"
               >
                 {classes.map(c => (
                   <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
@@ -1040,13 +1045,13 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               </select>
               <button
                 onClick={handleRelabelSelected}
-                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs cursor-pointer shadow-xs"
               >
                 Gán lại nhãn
               </button>
               <button
                 onClick={() => setSelectedSampleIds(new Set())}
-                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs"
+                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs cursor-pointer"
               >
                 Hủy chọn
               </button>
@@ -1056,9 +1061,9 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
         {/* Gallery Grid */}
         {filteredSamples.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
-            <p className="text-sm">Chưa có ảnh nào trong bộ dữ liệu.</p>
-            <p className="text-xs text-slate-600 mt-1">
+          <div className="py-12 text-center text-slate-500 border border-dashed border-slate-300 rounded-xl bg-slate-50/50">
+            <p className="text-sm font-medium">Chưa có ảnh nào trong bộ dữ liệu.</p>
+            <p className="text-xs text-slate-500 mt-1">
               Hãy tải lên file ZIP hoặc mở Webcam để bắt đầu chụp ảnh và gán nhãn!
             </p>
           </div>
@@ -1068,10 +1073,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               const cls = classes.find(c => c.id === sample.classId);
               const isChecked = selectedSampleIds.has(sample.id);
               const splitBadge = sample.split === 'train'
-                ? { label: 'TR', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
+                ? { label: 'TR', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' }
                 : sample.split === 'val'
-                ? { label: 'VAL', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' }
-                : { label: 'TST', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' };
+                ? { label: 'VAL', color: 'bg-amber-100 text-amber-800 border-amber-300' }
+                : { label: 'TST', color: 'bg-purple-100 text-purple-800 border-purple-300' };
 
               return (
                 <div
@@ -1084,10 +1089,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                       return next;
                     });
                   }}
-                  className={`group relative bg-black rounded-lg border overflow-hidden aspect-square flex items-center justify-center p-1 transition-all cursor-pointer ${
+                  className={`group relative bg-slate-950 rounded-lg border overflow-hidden aspect-square flex items-center justify-center p-1 transition-all cursor-pointer ${
                     isChecked
-                      ? 'border-indigo-400 ring-2 ring-indigo-400 scale-105'
-                      : 'border-slate-800 hover:border-slate-600'
+                      ? 'border-indigo-600 ring-2 ring-indigo-500 scale-105'
+                      : 'border-slate-300 hover:border-indigo-400'
                   }`}
                 >
                   <img
@@ -1105,7 +1110,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
                   {/* Class indicator dot */}
                   <span
-                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full"
+                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-white"
                     style={{ backgroundColor: cls?.color || '#fff' }}
                     title={`Lớp: ${cls?.name}`}
                   />
@@ -1116,7 +1121,7 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                       e.stopPropagation();
                       handleDeleteSample(sample.id);
                     }}
-                    className="absolute inset-0 bg-red-950/80 text-red-300 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    className="absolute inset-0 bg-red-950/80 text-red-200 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                     title="Xóa mẫu này"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1130,42 +1135,42 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
       {/* Add Custom Class Modal */}
       {showAddClassModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-3">Tạo Lớp / Nhãn mới</h3>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-slate-800 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-base font-bold text-slate-900 mb-3">Tạo Lớp / Nhãn mới</h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Tên lớp:</label>
+                <label className="text-slate-700 font-semibold block mb-1">Tên lớp:</label>
                 <input
                   type="text"
                   placeholder="Ví dụ: Bút bi, Cốc nước, Mèo, Chó..."
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-indigo-500 outline-none"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-xs focus:border-indigo-600 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Biểu tượng (Icon / Emoji):</label>
+                <label className="text-slate-700 font-semibold block mb-1">Biểu tượng (Icon / Emoji):</label>
                 <input
                   type="text"
                   value={newClassIcon}
                   onChange={(e) => setNewClassIcon(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-indigo-500 outline-none"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-xs focus:border-indigo-600 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Màu nhận diện:</label>
+                <label className="text-slate-700 font-semibold block mb-1">Màu nhận diện:</label>
                 <div className="flex items-center space-x-2">
                   <input
                     type="color"
                     value={newClassColor}
                     onChange={(e) => setNewClassColor(e.target.value)}
-                    className="w-10 h-8 rounded border-none cursor-pointer bg-transparent"
+                    className="w-10 h-8 rounded border border-slate-300 cursor-pointer bg-transparent"
                   />
-                  <span className="font-mono text-slate-400">{newClassColor}</span>
+                  <span className="font-mono text-slate-600 font-semibold">{newClassColor}</span>
                 </div>
               </div>
             </div>
@@ -1173,14 +1178,14 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
             <div className="mt-5 flex items-center justify-end space-x-2">
               <button
                 onClick={() => setShowAddClassModal(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddClass}
                 disabled={!newClassName.trim()}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium"
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold cursor-pointer shadow-xs"
               >
                 Tạo lớp
               </button>
@@ -1191,18 +1196,18 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
       {/* Delete Class Confirmation Modal */}
       {classToDelete && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mb-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-white mb-2">
+            <h3 className="text-base font-bold text-slate-900 mb-2">
               Xóa Lớp &quot;{classToDelete.name}&quot;?
             </h3>
 
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">
-              Lớp này đang có <strong className="text-white font-mono">{samples.filter(s => s.classId === classToDelete.id).length} ảnh</strong>. 
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              Lớp này đang có <strong className="text-slate-900 font-mono">{samples.filter(s => s.classId === classToDelete.id).length} ảnh</strong>. 
               Thao tác này sẽ xóa lớp và toàn bộ ảnh thuộc lớp này khỏi bộ dữ liệu.
             </p>
 
@@ -1210,14 +1215,14 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               <button
                 type="button"
                 onClick={() => setClassToDelete(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDeleteClass}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg shadow-red-600/30 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Xóa vĩnh viễn
@@ -1229,17 +1234,17 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
       {/* Clear All Samples Modal */}
       {showClearAllModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-white mb-2">
+            <h3 className="text-base font-bold text-slate-900 mb-2">
               Xóa Toàn Bộ {samples.length} Ảnh?
             </h3>
 
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
               Bạn có chắc chắn muốn xóa tất cả ảnh trong bộ dữ liệu? Các lớp đã tạo vẫn sẽ được giữ lại.
             </p>
 
@@ -1247,14 +1252,14 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               <button
                 type="button"
                 onClick={() => setShowClearAllModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmClearAll}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg shadow-red-600/30 transition-colors"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               >
                 Xác nhận Xóa hết
               </button>
@@ -1265,21 +1270,16 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
       {/* Floating In-App Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 border shadow-2xl text-xs font-medium animate-in slide-in-from-bottom-5 duration-200"
-          style={{
-            borderColor: toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.4)' : toastMessage.type === 'success' ? 'rgba(16, 185, 129, 0.4)' : toastMessage.type === 'warning' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(99, 102, 241, 0.4)',
-            color: toastMessage.type === 'error' ? '#fca5a5' : toastMessage.type === 'success' ? '#6ee7b7' : toastMessage.type === 'warning' ? '#fcd34d' : '#c7d2fe'
-          }}
-        >
-          {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />}
-          {toastMessage.type === 'success' && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
-          {toastMessage.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
-          {toastMessage.type === 'info' && <Tag className="w-4 h-4 text-indigo-400 shrink-0" />}
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-white border border-slate-200 shadow-xl text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 text-slate-800">
+          {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />}
+          {toastMessage.type === 'success' && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+          {toastMessage.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />}
+          {toastMessage.type === 'info' && <Tag className="w-4 h-4 text-indigo-600 shrink-0" />}
           <span>{toastMessage.text}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="ml-2 p-1 text-slate-400 hover:text-white rounded"
+            className="ml-2 p-1 text-slate-400 hover:text-slate-600 rounded cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>

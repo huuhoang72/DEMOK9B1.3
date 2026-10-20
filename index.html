@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Compatibility shim: Ensure window.fetch has both getter and setter
+      // to prevent browser extensions from throwing "Cannot set property fetch of #<Window> which has only a getter"
+      (function() {
+        try {
+          var _currentFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return _currentFetch;
+            },
+            set: function(val) {
+              _currentFetch = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (_) {}
+      })();
+    </script>
     <title>CNN Browser Lab - Huấn luyện AI trong Trình duyệt</title>
     <meta name="description" content="Nền tảng học tập tương tác giúp học sinh tự nạp ảnh, huấn luyện mạng nơ-ron tích chập (CNN) bằng TensorFlow.js, trực quan hóa và kiểm thử ngay trên trình duyệt." />
     <meta property="og:title" content="CNN Browser Lab - Huấn luyện AI trong Trình duyệt" />
@@ -15,4 +34,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
