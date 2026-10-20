@@ -14,6 +14,7 @@ import { TrainingStep } from './components/TrainingStep';
 import { EvaluationStep } from './components/EvaluationStep';
 import { InferencePlayground } from './components/InferencePlayground';
 import { KnowledgeModal } from './components/KnowledgeModal';
+import { RotateCcw } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dataset');
@@ -48,6 +49,8 @@ export default function App() {
   const [isTraining, setIsTraining] = useState(false);
   const [isModelTrained, setIsModelTrained] = useState(false);
 
+  const [showResetModal, setShowResetModal] = useState(false);
+
   // Initialize TF.js backend
   useEffect(() => {
     tfService.init().then(backend => {
@@ -57,20 +60,19 @@ export default function App() {
     });
   }, []);
 
-  // Handle Full Reset
-  const handleResetAll = () => {
-    if (confirm('Bạn có chắc muốn đặt lại toàn bộ phòng thí nghiệm về trạng thái ban đầu?')) {
-      tfService.dispose();
-      setClasses([
-        { id: 'class_1', name: 'Lớp 1', color: '#3B82F6', icon: '📦' },
-        { id: 'class_2', name: 'Lớp 2', color: '#10B981', icon: '🎯' }
-      ]);
-      setSamples([]);
-      setEpochLogs([]);
-      setIsModelTrained(false);
-      setIsTraining(false);
-      setActiveTab('dataset');
-    }
+  // Confirm Full Reset
+  const confirmResetAll = () => {
+    tfService.dispose();
+    setClasses([
+      { id: 'class_1', name: 'Lớp 1', color: '#3B82F6', icon: '📦' },
+      { id: 'class_2', name: 'Lớp 2', color: '#10B981', icon: '🎯' }
+    ]);
+    setSamples([]);
+    setEpochLogs([]);
+    setIsModelTrained(false);
+    setIsTraining(false);
+    setActiveTab('dataset');
+    setShowResetModal(false);
   };
 
   return (
@@ -83,7 +85,7 @@ export default function App() {
         isModelTrained={isModelTrained}
         totalSamples={samples.length}
         onOpenKnowledge={() => setIsKnowledgeOpen(true)}
-        onResetAll={handleResetAll}
+        onResetAll={() => setShowResetModal(true)}
       />
 
       {/* Main Container */}
@@ -149,6 +151,42 @@ export default function App() {
         isOpen={isKnowledgeOpen}
         onClose={() => setIsKnowledgeOpen(false)}
       />
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-4">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-2">
+              Đặt lại Toàn bộ Phòng Thí nghiệm?
+            </h3>
+
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Thao tác này sẽ giải phóng mô hình CNN trong bộ nhớ, xóa các dữ liệu đã nạp và đưa về trạng thái phòng lab ban đầu.
+            </p>
+
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmResetAll}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition-colors"
+              >
+                Xác nhận Đặt lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lab Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">

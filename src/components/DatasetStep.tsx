@@ -12,13 +12,15 @@ import {
   Sliders, 
   Check, 
   AlertCircle,
+  AlertTriangle,
   Eye,
   CameraOff,
   Tag,
   CheckSquare,
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 
 interface DatasetStepProps {
@@ -70,6 +72,19 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
   // Multi-select for relabeling
   const [selectedSampleIds, setSelectedSampleIds] = useState<Set<string>>(new Set());
   const [batchTargetClassId, setBatchTargetClassId] = useState<string>('');
+
+  // Modals & Notifications
+  const [classToDelete, setClassToDelete] = useState<ClassCategory | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ type: 'info' | 'success' | 'warning' | 'error'; text: string } | null>(null);
+
+  // Auto clear toast after 4s
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   // Keep selectedClassId valid
   useEffect(() => {
@@ -127,7 +142,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
     if (!video || !isWebcamActive) return;
 
     if (!selectedClassId) {
-      alert('Vui lòng tạo hoặc chọn một Lớp để gán nhãn cho ảnh chụp!');
+      setToastMessage({
+        type: 'warning',
+        text: 'Vui lòng tạo hoặc chọn một Lớp để gán nhãn cho ảnh chụp!'
+      });
       return;
     }
 
@@ -182,7 +200,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
       setIsBurstRecording(false);
     } else {
       if (!selectedClassId) {
-        alert('Vui lòng chọn lớp để gán nhãn trước khi chụp liên tục!');
+        setToastMessage({
+          type: 'warning',
+          text: 'Vui lòng chọn lớp để gán nhãn trước khi chụp liên tục!'
+        });
         return;
       }
       setIsBurstRecording(true);
@@ -218,9 +239,16 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
       setZipMessage(
         `🎉 Đã tải thành công ${result.summary.totalImages} ảnh! Tự động nhận diện ${result.summary.classesFound.length} lớp: ${result.summary.classesFound.join(', ')}.`
       );
+      setToastMessage({
+        type: 'success',
+        text: `Đã nạp ${result.summary.totalImages} ảnh và tạo ${result.summary.classesFound.length} lớp từ ZIP!`
+      });
     } catch (err: unknown) {
       console.error(err);
-      alert(`Lỗi giải nén ZIP: ${err instanceof Error ? err.message : String(err)}`);
+      setToastMessage({
+        type: 'error',
+        text: `Lỗi giải nén ZIP: ${err instanceof Error ? err.message : String(err)}`
+      });
     } finally {
       setIsExtractingZip(false);
       e.target.value = '';
@@ -299,7 +327,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
     if (!files || files.length === 0) return;
 
     if (!selectedClassId) {
-      alert('Vui lòng chọn hoặc tạo một Lớp trước để gán nhãn cho các ảnh này!');
+      setToastMessage({
+        type: 'warning',
+        text: 'Vui lòng chọn hoặc tạo một Lớp trước để gán nhãn cho các ảnh này!'
+      });
       return;
     }
 
@@ -328,6 +359,10 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
     setIsExtractingZip(false);
     e.target.value = '';
+    setToastMessage({
+      type: 'success',
+      text: `Đã nạp thành công ${newItems.length} ảnh!`
+    });
   };
 
   // Add new custom class
@@ -344,14 +379,54 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
     setSelectedClassId(id);
     setNewClassName('');
     setShowAddClassModal(false);
+    setToastMessage({
+      type: 'success',
+      text: `Đã tạo lớp "${newCategory.name}" thành công!`
+    });
   };
 
-  // Delete a class
-  const handleDeleteClass = (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa lớp này cùng toàn bộ ảnh gắn với nó?')) {
-      setClasses(prev => prev.filter(c => c.id !== id));
-      setSamples(prev => prev.filter(s => s.classId !== id));
+  // Trigger modal to delete a class
+  const requestDeleteClass = (cls: ClassCategory) => {
+    setClassToDelete(cls);
+  };
+
+  // Execute deletion of selected class
+  const handleConfirmDeleteClass = () => {
+    if (!classToDelete) return;
+    const idToDelete = classToDelete.id;
+    const name = classToDelete.name;
+    const count = samples.filter(s => s.classId === idToDelete).length;
+
+    const remainingClasses = classes.filter(c => c.id !== idToDelete);
+    setClasses(remainingClasses);
+    setSamples(prev => prev.filter(s => s.classId !== idToDelete));
+    setSelectedSampleIds(prev => {
+      const next = new Set(prev);
+      samples.filter(s => s.classId === idToDelete).forEach(s => next.delete(s.id));
+      return next;
+    });
+
+    if (selectedClassId === idToDelete) {
+      setSelectedClassId(remainingClasses.length > 0 ? remainingClasses[0].id : '');
     }
+
+    setClassToDelete(null);
+    setToastMessage({
+      type: 'info',
+      text: `Đã xóa lớp "${name}" cùng ${count} ảnh liên quan.`
+    });
+  };
+
+  // Confirm and clear all samples
+  const handleConfirmClearAll = () => {
+    const count = samples.length;
+    setSamples([]);
+    setSelectedSampleIds(new Set());
+    setShowClearAllModal(false);
+    setToastMessage({
+      type: 'info',
+      text: `Đã xóa toàn bộ ${count} ảnh trong bộ dữ liệu.`
+    });
   };
 
   // Delete sample
@@ -509,14 +584,15 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
                     </div>
 
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteClass(cls.id);
+                        requestDeleteClass(cls);
                       }}
-                      className="p-1 text-slate-500 hover:text-red-400 transition-colors"
-                      title="Xóa lớp này"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title={`Xóa lớp ${cls.name}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -933,11 +1009,8 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
 
             {samples.length > 0 && (
               <button
-                onClick={() => {
-                  if (confirm('Bạn có chắc muốn xóa toàn bộ ảnh trong bộ dữ liệu?')) {
-                    setSamples([]);
-                  }
-                }}
+                type="button"
+                onClick={() => setShowClearAllModal(true)}
                 className="px-2.5 py-1 rounded bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 text-xs transition-colors"
               >
                 Xóa hết
@@ -1113,6 +1186,103 @@ export const DatasetStep: React.FC<DatasetStepProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Delete Class Confirmation Modal */}
+      {classToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-2">
+              Xóa Lớp &quot;{classToDelete.name}&quot;?
+            </h3>
+
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Lớp này đang có <strong className="text-white font-mono">{samples.filter(s => s.classId === classToDelete.id).length} ảnh</strong>. 
+              Thao tác này sẽ xóa lớp và toàn bộ ảnh thuộc lớp này khỏi bộ dữ liệu.
+            </p>
+
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setClassToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteClass}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg shadow-red-600/30 transition-colors flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Xóa vĩnh viễn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Samples Modal */}
+      {showClearAllModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-2">
+              Xóa Toàn Bộ {samples.length} Ảnh?
+            </h3>
+
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Bạn có chắc chắn muốn xóa tất cả ảnh trong bộ dữ liệu? Các lớp đã tạo vẫn sẽ được giữ lại.
+            </p>
+
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setShowClearAllModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClearAll}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg shadow-red-600/30 transition-colors"
+              >
+                Xác nhận Xóa hết
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating In-App Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 border shadow-2xl text-xs font-medium animate-in slide-in-from-bottom-5 duration-200"
+          style={{
+            borderColor: toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.4)' : toastMessage.type === 'success' ? 'rgba(16, 185, 129, 0.4)' : toastMessage.type === 'warning' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(99, 102, 241, 0.4)',
+            color: toastMessage.type === 'error' ? '#fca5a5' : toastMessage.type === 'success' ? '#6ee7b7' : toastMessage.type === 'warning' ? '#fcd34d' : '#c7d2fe'
+          }}
+        >
+          {toastMessage.type === 'error' && <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />}
+          {toastMessage.type === 'success' && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+          {toastMessage.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
+          {toastMessage.type === 'info' && <Tag className="w-4 h-4 text-indigo-400 shrink-0" />}
+          <span>{toastMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-2 p-1 text-slate-400 hover:text-white rounded"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>

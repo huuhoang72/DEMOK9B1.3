@@ -40,6 +40,7 @@ export const InferencePlayground: React.FC<InferencePlaygroundProps> = ({
   // Webcam
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
+  const [webcamError, setWebcamError] = useState<string | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const lastInferTimeRef = useRef<number>(0);
 
@@ -138,6 +139,7 @@ export const InferencePlayground: React.FC<InferencePlaygroundProps> = ({
 
   // Start webcam
   const startWebcam = async () => {
+    setWebcamError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 400 }, height: { ideal: 400 }, facingMode: 'user' },
@@ -150,7 +152,7 @@ export const InferencePlayground: React.FC<InferencePlaygroundProps> = ({
       }
     } catch (err) {
       console.error(err);
-      alert('Không thể mở camera. Vui lòng cho phép quyền webcam.');
+      setWebcamError('Không thể mở camera. Vui lòng cho phép quyền truy cập webcam trong trình duyệt.');
       setIsWebcamActive(false);
     }
   };
@@ -448,6 +450,11 @@ export const InferencePlayground: React.FC<InferencePlaygroundProps> = ({
             {/* Mode 2: Live Webcam */}
             {sandboxMode === 'webcam' && (
               <div className="flex flex-col items-center">
+                {webcamError && (
+                  <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 max-w-sm text-center">
+                    {webcamError}
+                  </div>
+                )}
                 <div className="relative w-64 h-64 rounded-2xl overflow-hidden bg-black border-2 border-indigo-500/50 shadow-2xl flex items-center justify-center">
                   <video
                     ref={videoRef}

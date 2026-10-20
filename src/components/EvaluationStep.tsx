@@ -35,15 +35,25 @@ export const EvaluationStep: React.FC<EvaluationStepProps> = ({
   const [activeFilter, setActiveFilter] = useState<'all' | 'correct' | 'wrong'>('all');
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
 
+  const [evalNotice, setEvalNotice] = useState<{ type: 'error' | 'warning' | 'info'; text: string } | null>(null);
+
   const testSamples = samples.filter(s => s.split === 'test');
 
   const handleRunEvaluation = async () => {
+    setEvalNotice(null);
+
     if (!isModelTrained) {
-      alert('Mô hình chưa được huấn luyện! Vui lòng huấn luyện trước ở Bước 3.');
+      setEvalNotice({
+        type: 'warning',
+        text: 'Mô hình chưa được huấn luyện! Vui lòng huấn luyện trước ở Bước 3.'
+      });
       return;
     }
     if (testSamples.length === 0) {
-      alert('Tập Test chưa có mẫu nào. Vui lòng quay lại Bước 1 và điều chỉnh tỷ lệ Test > 0%!');
+      setEvalNotice({
+        type: 'warning',
+        text: 'Tập Test chưa có mẫu nào. Vui lòng quay lại Bước 1 và điều chỉnh tỷ lệ Test > 0%!'
+      });
       return;
     }
 
@@ -54,7 +64,10 @@ export const EvaluationStep: React.FC<EvaluationStepProps> = ({
       setSelectedCell(null);
     } catch (err: unknown) {
       console.error(err);
-      alert(`Lỗi khi đánh giá: ${err instanceof Error ? err.message : String(err)}`);
+      setEvalNotice({
+        type: 'error',
+        text: `Lỗi khi đánh giá: ${err instanceof Error ? err.message : String(err)}`
+      });
     } finally {
       setIsEvaluating(false);
     }
@@ -112,6 +125,25 @@ export const EvaluationStep: React.FC<EvaluationStepProps> = ({
           </div>
         </div>
       </div>
+
+      {evalNotice && (
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between text-xs animate-in fade-in duration-150 ${
+            evalNotice.type === 'error'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          }`}
+        >
+          <span>{evalNotice.text}</span>
+          <button
+            type="button"
+            onClick={() => setEvalNotice(null)}
+            className="p-1 text-slate-400 hover:text-white rounded"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {!evalResult ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center">

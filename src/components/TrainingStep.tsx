@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ClassCategory, DatasetSample, Hyperparameters, EpochLog } from '../types';
 import { tfService } from '../services/tfService';
 import confetti from 'canvas-confetti';
@@ -44,6 +44,8 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
 }) => {
   const lossCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const accCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const [statusAlert, setStatusAlert] = useState<{ type: 'error' | 'warning' | 'info'; message: string } | null>(null);
 
   const trainSamplesCount = samples.filter(s => s.split === 'train').length;
   const valSamplesCount = samples.filter(s => s.split === 'val').length;
@@ -215,13 +217,21 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
 
   // Start Training
   const handleStartTraining = async () => {
+    setStatusAlert(null);
+
     if (classes.length < 2) {
-      alert('Mạng nơ-ron CNN cần tối thiểu 2 lớp để phân loại. Vui lòng tạo ít nhất 2 lớp và nạp ảnh ở Bước 1!');
+      setStatusAlert({
+        type: 'warning',
+        message: 'Mạng nơ-ron CNN cần tối thiểu 2 lớp để phân loại. Vui lòng tạo ít nhất 2 lớp và nạp ảnh ở Bước 1!'
+      });
       return;
     }
 
     if (trainSamplesCount === 0) {
-      alert('Tập Train chưa có mẫu nào. Vui lòng quay lại Bước 1 để nạp ảnh từ Webcam hoặc file ZIP!');
+      setStatusAlert({
+        type: 'warning',
+        message: 'Tập Train chưa có mẫu nào. Vui lòng quay lại Bước 1 để nạp ảnh từ Webcam hoặc file ZIP!'
+      });
       return;
     }
 
@@ -249,7 +259,10 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
       }
     } catch (err: unknown) {
       console.error(err);
-      alert(`Lỗi khi huấn luyện: ${err instanceof Error ? err.message : String(err)}`);
+      setStatusAlert({
+        type: 'error',
+        message: `Lỗi khi huấn luyện: ${err instanceof Error ? err.message : String(err)}`
+      });
     } finally {
       setIsTraining(false);
     }
@@ -338,6 +351,31 @@ export const TrainingStep: React.FC<TrainingStepProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Inline Warning/Error Banner */}
+      {statusAlert && (
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between text-xs animate-in fade-in duration-150 ${
+            statusAlert.type === 'error'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : statusAlert.type === 'warning'
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{statusAlert.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusAlert(null)}
+            className="p-1 text-slate-400 hover:text-white rounded"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Real-time Status Card Row */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
